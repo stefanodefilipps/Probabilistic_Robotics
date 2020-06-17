@@ -61,13 +61,15 @@ endfunction;
 function [e,Jr,Jl]=errorAndJacobian(Xr,Xl,z)
    R=Xr(1:2,1:2);
    t=Xr(1:2,3);
-   p_hat = (inv(Xr)*[Xl;1])(1:2); % Xr^(-1)*Xl
+   p_hat = R'*(Xl -t);  % Xr^(-1)*Xl
    z_hat=norm(p_hat); %prediction
    e=z_hat-z;
    Jr = zeros(1,3);
-   Jr(1,1:2) = (1/norm(p_hat))*p_hat'*(-R');
-   Jr(1,3) = (1/norm(p_hat))*p_hat'*(R'*[0 1;-1 0]*Xl);
-   Jl= (1/norm(p_hat))*p_hat'*(R');
+   J_icp = zeros(2,3);
+   J_icp(1:2,1:2) = -R';
+   J_icp(1:2,3) = R'*[0 1;-1 0]*Xl;
+   Jr = (1/norm(p_hat))*p_hat'* J_icp;
+   Jl= (1/norm(p_hat))*p_hat'*R';
 endfunction;
 
 % error and jacobian of a pose pose computed using the Chordal distance
@@ -256,7 +258,7 @@ function [XR, XL, chi_stats,chi_stats_p_l,chi_stats_p_p, num_inliers]=doMultiICP
 
     chi_stats_p_l(iteration) = chi_stats(iteration);
 
-    
+  %{  
     % Then compute the error and keep accumulating in H and b all the terms due the relative poses measurement error
     for (measurement_num=1:size(Zij,3))
       pose_index_i=associations_p_p(1,measurement_num);
@@ -316,6 +318,7 @@ function [XR, XL, chi_stats,chi_stats_p_l,chi_stats_p_p, num_inliers]=doMultiICP
       b(pose_matrix_index_j:pose_matrix_index_j+pose_dim-1)+=brj;
 
     endfor
+    %}
     
 
     H+=eye(system_size)*damping;

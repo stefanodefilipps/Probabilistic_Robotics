@@ -124,20 +124,24 @@ function [id2state_landmark,id2state_pose,state2id_landmark,state2id_pose,associ
 end
 
 
-function [XR_ground_truth,XL_ground_truth] = load_ground_truth(file)
+function [XR_ground_truth,XL_ground_truth,Zij_ground_truth,id2state_landmark_ground_truth] = load_ground_truth(file)
 	XL_ground_truth = [];
 	XR_ground_truth = [];
+	id2state_landmark_ground_truth = [];
+	Zij_ground_truth = zeros(3,3,1);
+	flag = 0;
 	f = fopen(file);
 	l = fgetl(file);
-	flag = 0;
 	while ischar(l)
 		d = strsplit(l);
 		header = d{1};
 		%get all initial guesses for the robot poses
 		if strcmp(header,"VERTEX_XY") == 1
+			id_landmark = str2double(d{2});
 			x_l = str2double(d{3});
 			y_l = str2double(d{4});
 			XL_ground_truth(:,end+1) = [x_l;y_l];
+			id2state_landmark_ground_truth(id_landmark) = size(XL_ground_truth,2);
 		end
 		if strcmp(header,"VERTEX_SE2") == 1
 			x_r = str2double(d{3});
@@ -151,6 +155,13 @@ function [XR_ground_truth,XL_ground_truth] = load_ground_truth(file)
 			end
 		end
 		l = fgetl(file);
+	end
+
+	for(i=2:size(XR_ground_truth,3))
+		XR_i = XR_ground_truth(:,:,i-1);
+		XR_j = XR_ground_truth(:,:,i);
+		dX = inv(XR_i)*XR_j;
+		Zij_ground_truth(:,:,i-1) = dX;
 	end
 end
 
